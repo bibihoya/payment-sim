@@ -5,10 +5,10 @@ run-worker:
 	go run cmd/worker/main.go
 
 migrate-up:
-	go run cmd/migrate/main.go up
+	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/payments?sslmode=disable" up
 
 migrate-down:
-	go run cmd/migrate/main.go down
+	migrate -path ./migrations -database "postgres://postgres:postgres@localhost:5432/payments?sslmode=disable" down
 
 docker-up:
 	docker-compose up -d

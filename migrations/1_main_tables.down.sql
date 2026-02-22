@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS wallets;
+DROP TYPE IF EXISTS trans_status;
+DROP EXTENSION IF EXISTS "uuid-ossp"
