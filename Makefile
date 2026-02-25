@@ -1,3 +1,5 @@
+run-dev: docker-up migrate-up run-api
+
 run-api:
 	go run cmd/api/main.go
 

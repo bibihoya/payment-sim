@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /api/bin/api ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/api ./cmd/api
 
 FROM alpine:latest
 
@@ -20,6 +20,7 @@ WORKDIR /app
 COPY --from=builder /app/bin/api /app/api
 COPY --from=builder /app/migrations /app/migrations
 
+RUN chmod +x /app/api
 EXPOSE 8080
 
 CMD ["./api"]
