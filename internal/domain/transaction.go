@@ -24,3 +24,18 @@ type Transaction struct {
 	Status      TransStatus
 	CreatedAt   time.Time
 }
+
+func (s TransStatus) String() string {
+	switch s {
+	case StatusPending:
+		return "pending"
+	case StatusApproved:
+		return "approved"
+	case StatusRejected:
+		return "rejected"
+	case StatusFraud:
+		return "fraud"
+	default:
+		return "unknown"
+	}
+}

@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"time"
 
 	"payment-sim/internal/domain"
 
@@ -19,17 +21,18 @@ func NewTransStorage(db *sql.DB) *TransStorage {
 
 func (st *TransStorage) StoreTransaction(ctx context.Context, tr *domain.Transaction) error {
 	query := `
-		INSERT INTO transactions (id, from_wal_id, to_wal_id, amount, status, description)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO transactions (id, from_wal_id, to_wal_id, amount, status, description, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
+	statusStr := tr.Status.String()
 
 	_, err := st.db.ExecContext(ctx, query,
-		tr.ID, tr.FromWalID, tr.ToWalID, tr.Amount, tr.Status, tr.Description)
+		tr.ID, tr.FromWalID, tr.ToWalID, tr.Amount, statusStr, tr.Description, time.Now())
 
 	return err
 }
 
-func (st *TransStorage) LoadTransaction(ctx context.Context, id int64) (*domain.Transaction, error) {
+func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain.Transaction, error) {
 	var tr domain.Transaction
 	var idStr, fromStr, toStr string
 
@@ -42,7 +45,9 @@ func (st *TransStorage) LoadTransaction(ctx context.Context, id int64) (*domain.
 	err := row.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt)
 
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 	}
 
 	tr.ID, err = uuid.Parse(idStr)
