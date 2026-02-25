@@ -5,6 +5,8 @@ import (
 	"database/sql"
 
 	"payment-sim/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type TransStorage struct {
@@ -29,6 +31,7 @@ func (st *TransStorage) StoreTransaction(ctx context.Context, tr *domain.Transac
 
 func (st *TransStorage) LoadTransaction(ctx context.Context, id int64) (*domain.Transaction, error) {
 	var tr domain.Transaction
+	var idStr, fromStr, toStr string
 
 	query := `
 		SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at
@@ -36,11 +39,25 @@ func (st *TransStorage) LoadTransaction(ctx context.Context, id int64) (*domain.
 		WHERE id = $1
 	`
 	row := st.db.QueryRowContext(ctx, query, id)
-	err := row.Scan(&tr.ID, &tr.FromWalID, &tr.ToWalID, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt)
+	err := row.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt)
 
 	if err != nil {
 		return nil, err
 	}
+
+	tr.ID, err = uuid.Parse(idStr)
+	if err != nil {
+		return nil, err
+	}
+	tr.FromWalID, err = uuid.Parse(fromStr)
+	if err != nil {
+		return nil, err
+	}
+	tr.ToWalID, err = uuid.Parse(toStr)
+	if err != nil {
+		return nil, err
+	}
+
 	return &tr, nil
 }
 

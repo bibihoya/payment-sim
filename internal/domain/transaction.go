@@ -2,6 +2,8 @@ package domain
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type TransStatus int
@@ -14,9 +16,9 @@ const (
 )
 
 type Transaction struct {
-	ID          int64
-	FromWalID   int64
-	ToWalID     int64
+	ID          uuid.UUID
+	FromWalID   uuid.UUID
+	ToWalID     uuid.UUID
 	Amount      int64
 	Description string
 	Status      TransStatus
