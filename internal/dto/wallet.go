@@ -3,18 +3,18 @@ package dto
 import "time"
 
 type CreateWalletRequest struct {
-	Balance float64 `json:"balance,omitempty"`
+	Balance int64 `json:"balance,omitempty"`
 }
 
 type CreateWalletResponse struct {
 	ID        string    `json:"id"`
-	Balance   float64   `json:"balance"`
+	Balance   int64     `json:"balance"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type BalanceResponse struct {
 	ID        string    `json:"id"`
-	Balance   float64   `json:"balance"`
+	Balance   int64     `json:"balance"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 

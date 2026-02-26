@@ -42,7 +42,7 @@ func (wst *WalStorage) LoadWallet(ctx context.Context, id string) (*domain.Walle
 		WHERE id = $1
 	`
 	row := wst.db.QueryRowContext(ctx, query, id)
-	err := row.Scan(&idStr, &idStr, &w.Balance, &w.CreatedAt, &w.UpdatedAt)
+	err := row.Scan(&idStr, &w.Balance, &w.CreatedAt, &w.UpdatedAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -82,11 +82,12 @@ func (wst *WalStorage) UpdateBalance(ctx context.Context, id string, balance int
 
 func (wst *WalStorage) GetLastTransactions(ctx context.Context, id string, limit int) ([]*domain.Transaction, error) {
 	query := `
-		SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at
-		FROM wallets
-		WHERE id = $1
-		ORDER BY created_at DESC LIMIT $2
-	`
+        SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at
+        FROM transactions
+        WHERE from_wal_id = $1 OR to_wal_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2
+    `
 
 	rows, err := wst.db.QueryContext(ctx, query, id, limit)
 	if err != nil {
@@ -97,12 +98,14 @@ func (wst *WalStorage) GetLastTransactions(ctx context.Context, id string, limit
 	var transactions []*domain.Transaction
 	for rows.Next() {
 		var tr domain.Transaction
-		var idStr, fromStr, toStr string
+		var idStr, fromStr, toStr, statusStr string // ← status как string
 
-		err := rows.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt)
+		err := rows.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &statusStr, &tr.Description, &tr.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
+
+		// Парсим UUID
 		tr.ID, err = uuid.Parse(idStr)
 		if err != nil {
 			return nil, err
@@ -115,7 +118,23 @@ func (wst *WalStorage) GetLastTransactions(ctx context.Context, id string, limit
 		if err != nil {
 			return nil, err
 		}
+
+		// Конвертируем строку статуса в TransStatus
+		switch statusStr {
+		case "pending":
+			tr.Status = domain.StatusPending
+		case "approved":
+			tr.Status = domain.StatusApproved
+		case "rejected":
+			tr.Status = domain.StatusRejected
+		case "fraud":
+			tr.Status = domain.StatusFraud
+		default:
+			tr.Status = domain.StatusPending
+		}
+
 		transactions = append(transactions, &tr)
 	}
+
 	return transactions, nil
 }
