@@ -46,6 +46,7 @@ func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+
 			return nil, nil
 		}
 	}
