@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"payment-sim/internal/antifraud"
 	"payment-sim/internal/kafka"
 	"payment-sim/internal/storage"
 	"payment-sim/internal/worker"
@@ -24,10 +25,12 @@ func main() {
 	transStorage := storage.NewTransStorage(db)
 	walStorage := storage.NewWalStorage(db)
 
+	fraudDetector := antifraud.NewDetector(walStorage)
+
 	brokers := []string{"localhost:9092"}
 	consumer := kafka.NewConsumer(brokers, "transactions", "transaction-consumer")
 
-	wk := worker.NewWorker(consumer, transStorage, walStorage)
+	wk := worker.NewWorker(consumer, transStorage, walStorage, fraudDetector)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

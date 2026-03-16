@@ -189,3 +189,20 @@ func (wst *WalStorage) Transfer(ctx context.Context, fromWal, toWal string, amou
 
 	return tx.Commit()
 }
+
+func (wst *WalStorage) CountTransactions(ctx context.Context, walletID string, since time.Time) (int, error) {
+	var cnt int
+
+	query := `
+		SELECT COUNT(*)
+		FROM transactions
+		WHERE (from_wal_id = $1 OR to_wal_id = $1)
+		AND created_at >= $2
+	`
+
+	err := wst.db.QueryRowContext(ctx, query, walletID, since).Scan(&cnt)
+	if err != nil {
+		return 0, err
+	}
+	return cnt, nil
+}

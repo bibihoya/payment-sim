@@ -3,25 +3,28 @@ package worker
 import (
 	"context"
 	"log"
+	"payment-sim/internal/antifraud"
 	"payment-sim/internal/domain"
 	"payment-sim/internal/kafka"
 	"payment-sim/internal/storage"
 )
 
 type Worker struct {
-	consumer     *kafka.Consumer
-	transStorage *storage.TransStorage
-	walStorage   *storage.WalStorage
+	consumer      *kafka.Consumer
+	transStorage  *storage.TransStorage
+	walStorage    *storage.WalStorage
+	fraudDetector *antifraud.Detector
 }
 
 func NewWorker(
 	consumer *kafka.Consumer,
 	transStorage *storage.TransStorage,
-	walStorage *storage.WalStorage) *Worker {
+	walStorage *storage.WalStorage, fraudDetector *antifraud.Detector) *Worker {
 	return &Worker{
-		consumer:     consumer,
-		transStorage: transStorage,
-		walStorage:   walStorage,
+		consumer:      consumer,
+		transStorage:  transStorage,
+		walStorage:    walStorage,
+		fraudDetector: fraudDetector,
 	}
 }
 
@@ -52,6 +55,16 @@ func (wk *Worker) processTransaction(ctx context.Context, event *kafka.Transacti
 	if tr.Status != domain.StatusPending {
 		log.Println("Transaction is not pending")
 		return nil
+	}
+
+	fraud, reason, err := wk.fraudDetector.Check(ctx, tr)
+	if err != nil {
+		log.Printf("fraud error: %s", err.Error())
+		return err
+	}
+	if fraud {
+		log.Printf("Transaction %s is marked as fraud: %s", event.TransactionID, reason)
+		return wk.updateStatus(ctx, event.TransactionID, domain.StatusFraud, reason)
 	}
 
 	err = wk.walStorage.Transfer(ctx, tr.FromWalID.String(), tr.ToWalID.String(), tr.Amount)
