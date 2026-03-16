@@ -98,7 +98,7 @@ func (wst *WalStorage) GetLastTransactions(ctx context.Context, id string, limit
 	var transactions []*domain.Transaction
 	for rows.Next() {
 		var tr domain.Transaction
-		var idStr, fromStr, toStr, statusStr string // ← status как string
+		var idStr, fromStr, toStr, statusStr string
 
 		err := rows.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &statusStr, &tr.Description, &tr.CreatedAt)
 		if err != nil {
@@ -137,4 +137,55 @@ func (wst *WalStorage) GetLastTransactions(ctx context.Context, id string, limit
 	}
 
 	return transactions, nil
+}
+
+func (wst *WalStorage) Transfer(ctx context.Context, fromWal, toWal string, amount int64) error {
+	tx, err := wst.db.BeginTx(ctx, &sql.TxOptions{
+		Isolation: sql.LevelReadCommitted,
+	})
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var fromBal int64
+	err = tx.QueryRowContext(ctx,
+		`SELECT balance FROM wallets WHERE id = $1 FOR UPDATE`, fromWal).Scan(&fromBal)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("sender wallet not found")
+		}
+		return err
+	}
+
+	if fromBal < amount {
+		return errors.New("sender wallet amount is low")
+	}
+
+	var toBal int64
+	err = tx.QueryRowContext(ctx,
+		`SELECT balance FROM wallets WHERE id = $1 FOR UPDATE`, toWal).Scan(&toBal)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("receiver wallet not found")
+		}
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx,
+		`UPDATE wallets SET balance = balance - $1, updated_at = $2 WHERE id = $3`,
+		amount, time.Now(), fromWal)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx,
+		`UPDATE wallets SET balance = balance + $1, updated_at = $2 WHERE id = $3`,
+		amount, time.Now(), toWal)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

@@ -12,7 +12,8 @@ const (
 	StatusPending  TransStatus = iota // 0
 	StatusApproved                    // 1
 	StatusRejected                    // 2
-	StatusFraud                       // 3
+	StatusFailed                      // 3
+	StatusFraud                       // 4
 )
 
 type Transaction struct {
@@ -33,6 +34,8 @@ func (s TransStatus) String() string {
 		return "approved"
 	case StatusRejected:
 		return "rejected"
+	case StatusFailed:
+		return "failed"
 	case StatusFraud:
 		return "fraud"
 	default:

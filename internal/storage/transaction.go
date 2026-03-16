@@ -67,7 +67,7 @@ func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain
 	return &tr, nil
 }
 
-func (st *TransStorage) UpdateStatus(ctx context.Context, id int64, status domain.TransStatus) error {
+func (st *TransStorage) UpdateStatus(ctx context.Context, id string, status domain.TransStatus) error {
 	query := `
 		UPDATE transactions SET status = $1, updated_at = NOW()
 		WHERE id = $2

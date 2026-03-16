@@ -1,4 +1,4 @@
-run-dev: docker-up migrate-up run-api
+run-dev: docker-up migrate-up run-api run-worker
 
 run-api:
 	go run cmd/api/main.go
@@ -17,3 +17,6 @@ docker-up:
 
 docker-down:
 	docker-compose down
+
+docker-build:
+	docker-compose build

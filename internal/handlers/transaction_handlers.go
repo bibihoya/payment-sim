@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"payment-sim/internal/domain"
 	"payment-sim/internal/dto"
+	"payment-sim/internal/kafka"
 	"payment-sim/internal/storage"
 	"time"
 
@@ -13,7 +16,8 @@ import (
 )
 
 type TransactionHandler struct {
-	storage *storage.TransStorage
+	storage  *storage.TransStorage
+	producer kafka.Producer
 }
 
 func NewTransactionHandler(storage *storage.TransStorage) *TransactionHandler {
@@ -49,6 +53,21 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	event := &kafka.TransactionEvent{
+		TransactionID: tr.ID.String(),
+		FromWalletID:  tr.FromWalID.String(),
+		ToWalletID:    tr.ToWalID.String(),
+		Amount:        tr.Amount,
+		Description:   tr.Description,
+		CreatedAt:     tr.CreatedAt,
+	}
+
+	go func() {
+		if err := h.producer.PublishTransaction(context.Background(), event); err != nil {
+			log.Println("error publishing transaction", err)
+		}
+	}()
 
 	resp := dto.CreateTransactionResponse{
 		ID:        tr.ID.String(),

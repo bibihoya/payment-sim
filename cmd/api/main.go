@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"payment-sim/internal/handlers"
+	"payment-sim/internal/kafka"
 	"payment-sim/internal/storage"
 
 	"github.com/gorilla/mux"
@@ -18,10 +19,14 @@ func main() {
 	}
 	defer db.Close()
 
+	brokers := []string{"localhost:9092"}
+	producer := kafka.NewProducer(brokers, "transactions")
+	defer producer.Close()
+
 	transStorage := storage.NewTransStorage(db)
 	walStorage := storage.NewWalStorage(db)
 
-	transHandler := handlers.NewTransactionHandler(transStorage)
+	transHandler := handlers.NewTransactionHandler(transStorage, producer)
 	walletHandler := handlers.NewWalletHandler(walStorage)
 
 	r := mux.NewRouter()

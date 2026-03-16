@@ -58,5 +58,19 @@ services:
     volumes:
       - ./migrations:/app/migrations
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: payments
+      KAFKA_BROKERS: kafka:9092
+
 volumes:
   postgres_data:
