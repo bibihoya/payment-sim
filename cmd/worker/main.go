@@ -1,4 +1,4 @@
-package worker
+package main
 
 import (
 	"context"
@@ -13,6 +13,8 @@ import (
 	"payment-sim/internal/worker"
 	"syscall"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {

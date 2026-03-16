@@ -34,16 +34,17 @@ func (st *TransStorage) StoreTransaction(ctx context.Context, tr *domain.Transac
 
 func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain.Transaction, error) {
 	var tr domain.Transaction
-	var idStr, fromStr, toStr string
+	var idStr, fromStr, toStr, statusStr string
 	var errMsg sql.NullString
 
 	query := `
-		SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at, err_message
+		SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at, error_message
 		FROM transactions
 		WHERE id = $1
 	`
 	row := st.db.QueryRowContext(ctx, query, id)
-	err := row.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt, &errMsg)
+
+	err := row.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &statusStr, &tr.Description, &tr.CreatedAt, &errMsg)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -65,6 +66,19 @@ func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain
 		return nil, err
 	}
 
+	switch statusStr {
+	case "pending":
+		tr.Status = domain.StatusPending
+	case "approved":
+		tr.Status = domain.StatusApproved
+	case "rejected":
+		tr.Status = domain.StatusRejected
+	case "fraud":
+		tr.Status = domain.StatusFraud
+	default:
+		tr.Status = domain.StatusPending
+	}
+
 	if errMsg.Valid {
 		tr.ErrorMsg = errMsg.String
 	}
@@ -76,7 +90,7 @@ func (st *TransStorage) UpdateStatus(ctx context.Context, id string, status doma
 	query := `
         UPDATE transactions 
         SET status = $1, 
-            error_msg = $2, 
+            error_message = $2, 
             updated_at = NOW() 
         WHERE id = $3
     `

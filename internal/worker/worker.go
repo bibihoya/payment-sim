@@ -79,7 +79,7 @@ func (wk *Worker) processTransaction(ctx context.Context, event *kafka.Transacti
 		case "sender wallet amount is low":
 			return wk.updateStatus(ctx, tr.ID.String(), domain.StatusRejected, "sender wallet balance is low")
 		default:
-			return err
+			return wk.updateStatus(ctx, tr.ID.String(), domain.StatusFailed, err.Error())
 		}
 	}
 

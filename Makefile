@@ -1,4 +1,7 @@
-run-dev: docker-up migrate-up run-api run-worker
+.PHONY: run-dev run-api run-worker migrate-up migrate-down docker-up docker-down docker-build
+
+run-dev: docker-up migrate-up
+	$(MAKE) run-api & $(MAKE) run-worker
 
 run-api:
 	go run cmd/api/main.go
