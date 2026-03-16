@@ -17,7 +17,8 @@ CREATE TABLE transactions (
     status trans_status NOT NULL,
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    error_message TEXT
 );
 
 CREATE INDEX idx_trans_from_wal ON transactions(from_wal_id);

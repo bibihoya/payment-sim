@@ -24,6 +24,7 @@ type Transaction struct {
 	Description string
 	Status      TransStatus
 	CreatedAt   time.Time
+	ErrorMsg    string
 }
 
 func (s TransStatus) String() string {

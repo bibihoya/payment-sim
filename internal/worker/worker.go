@@ -35,8 +35,7 @@ func (wk *Worker) updateStatus(ctx context.Context, id string, status domain.Tra
 	}
 
 	tr.Status = status
-	log.Println(msg)
-	return wk.transStorage.UpdateStatus(ctx, id, status)
+	return wk.transStorage.UpdateStatus(ctx, id, status, msg)
 }
 
 func (wk *Worker) processTransaction(ctx context.Context, event *kafka.TransactionEvent) error {

@@ -21,13 +21,13 @@ func NewTransStorage(db *sql.DB) *TransStorage {
 
 func (st *TransStorage) StoreTransaction(ctx context.Context, tr *domain.Transaction) error {
 	query := `
-		INSERT INTO transactions (id, from_wal_id, to_wal_id, amount, status, description, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO transactions (id, from_wal_id, to_wal_id, amount, status, description, created_at, updated_at, error_message)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 	statusStr := tr.Status.String()
 
 	_, err := st.db.ExecContext(ctx, query,
-		tr.ID, tr.FromWalID, tr.ToWalID, tr.Amount, statusStr, tr.Description, time.Now())
+		tr.ID, tr.FromWalID, tr.ToWalID, tr.Amount, statusStr, tr.Description, time.Now(), time.Now(), tr.ErrorMsg)
 
 	return err
 }
@@ -35,14 +35,15 @@ func (st *TransStorage) StoreTransaction(ctx context.Context, tr *domain.Transac
 func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain.Transaction, error) {
 	var tr domain.Transaction
 	var idStr, fromStr, toStr string
+	var errMsg sql.NullString
 
 	query := `
-		SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at
+		SELECT id, from_wal_id, to_wal_id, amount, status, description, created_at, err_message
 		FROM transactions
 		WHERE id = $1
 	`
 	row := st.db.QueryRowContext(ctx, query, id)
-	err := row.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt)
+	err := row.Scan(&idStr, &fromStr, &toStr, &tr.Amount, &tr.Status, &tr.Description, &tr.CreatedAt, &errMsg)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -64,15 +65,21 @@ func (st *TransStorage) LoadTransaction(ctx context.Context, id string) (*domain
 		return nil, err
 	}
 
+	if errMsg.Valid {
+		tr.ErrorMsg = errMsg.String
+	}
+
 	return &tr, nil
 }
 
-func (st *TransStorage) UpdateStatus(ctx context.Context, id string, status domain.TransStatus) error {
+func (st *TransStorage) UpdateStatus(ctx context.Context, id string, status domain.TransStatus, errorMsg string) error {
 	query := `
-		UPDATE transactions SET status = $1, updated_at = NOW()
-		WHERE id = $2
-	`
-
-	_, err := st.db.ExecContext(ctx, query, status, id)
+        UPDATE transactions 
+        SET status = $1, 
+            error_msg = $2, 
+            updated_at = NOW() 
+        WHERE id = $3
+    `
+	_, err := st.db.ExecContext(ctx, query, status.String(), errorMsg, id)
 	return err
 }

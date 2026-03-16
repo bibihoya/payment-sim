@@ -17,11 +17,14 @@ import (
 
 type TransactionHandler struct {
 	storage  *storage.TransStorage
-	producer kafka.Producer
+	producer *kafka.Producer
 }
 
-func NewTransactionHandler(storage *storage.TransStorage) *TransactionHandler {
-	return &TransactionHandler{storage: storage}
+func NewTransactionHandler(storage *storage.TransStorage, producer *kafka.Producer) *TransactionHandler {
+	return &TransactionHandler{
+		storage:  storage,
+		producer: producer,
+	}
 }
 
 // CreateTransaction POST /api/transactions
@@ -47,6 +50,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		Description: req.Description,
 		Status:      domain.StatusPending,
 		CreatedAt:   time.Now(),
+		ErrorMsg:    "",
 	}
 
 	if err := h.storage.StoreTransaction(r.Context(), tr); err != nil {
