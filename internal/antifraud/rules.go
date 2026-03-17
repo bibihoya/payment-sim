@@ -3,7 +3,6 @@ package antifraud
 import (
 	"context"
 	"payment-sim/internal/domain"
-	"payment-sim/internal/storage"
 	"time"
 )
 
@@ -33,13 +32,17 @@ func (ar *AmountRule) Check(ctx context.Context, tr *domain.Transaction) (bool, 
 	return false, "", nil
 }
 
+type WalletStorage interface {
+	CountTransactions(ctx context.Context, walletID string, since time.Time) (int, error)
+}
+
 type FrequencyRule struct {
-	walStorage *storage.WalStorage
+	walStorage WalletStorage
 	timeWindow time.Duration
 	maxCount   int
 }
 
-func NewFrequencyRule(storage *storage.WalStorage, timeWindow time.Duration, maxCount int) *FrequencyRule {
+func NewFrequencyRule(storage WalletStorage, timeWindow time.Duration, maxCount int) *FrequencyRule {
 	return &FrequencyRule{
 		walStorage: storage,
 		timeWindow: timeWindow,
@@ -59,7 +62,7 @@ func (fr *FrequencyRule) Check(ctx context.Context, tr *domain.Transaction) (boo
 		return false, "", err
 	}
 
-	if cnt >= fr.maxCount {
+	if cnt > fr.maxCount {
 		return true, "too many transactions", nil
 	}
 	return false, "", nil

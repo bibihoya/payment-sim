@@ -40,6 +40,6 @@ func (s TransStatus) String() string {
 	case StatusFraud:
 		return "fraud"
 	default:
-		return "unknown"
+		return "pending"
 	}
 }

@@ -32,5 +32,5 @@ func (w *Wallet) CanSend(amount int64) bool {
 	if w.IsZero() {
 		return false
 	}
-	return w.Balance >= amount
+	return w.Balance >= amount && amount > 0
 }
